@@ -122,12 +122,12 @@ export default function OrdemDetalhesPage() {
         case 'AWAITING_WEIGHING':
         case 'IN_WEIGHING':
           await completeWeighing(order.id)
-          // Marca inicio da producao
+          // Marca inicio da producao — via RPC ja seta production_started_at, mas garante via client tb
           const { error: startErr } = await supabase
             .from('compounding_orders')
             .update({ production_started_at: new Date().toISOString() })
             .eq('id', order.id)
-          if (startErr) console.error('Erro ao marcar inicio da producao:', startErr)
+          if (startErr) throw startErr
           break
         case 'IN_COMPOUNDING':
         case 'IN_PROCESS_CONTROL':
