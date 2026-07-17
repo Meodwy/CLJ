@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Package, AlertTriangle, Clock, Bell, ArrowRight, Loader2,
   PackageOpen, ClipboardCheck, AlertCircle, TrendingDown,
-  TrendingUp, ChevronRight, Pill, Syringe,
+  TrendingUp, ChevronRight, Pill, Syringe, Move,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
@@ -146,6 +146,7 @@ export default function EstoqueDashboardPage() {
   const navLinks = [
     { label: 'Produtos', href: '/dashboard/estoque/produtos', icon: PackageOpen, desc: 'Gerenciar catalogo' },
     { label: 'Inventário', href: '/dashboard/estoque/inventario', icon: ClipboardCheck, desc: 'Contagem e ajustes' },
+    { label: 'Movimentações', href: '/dashboard/estoque/movimentacoes', icon: Move, desc: 'Entradas e saídas' },
     { label: 'Lotes', href: '/dashboard/estoque/lotes', icon: Clock, desc: 'Controle de validades' },
     { label: 'Alertas', href: '/dashboard/estoque/alertas', icon: AlertCircle, desc: 'Notificacoes' },
     { label: 'Fornecedores', href: '/dashboard/estoque/fornecedores', icon: PackageOpen, desc: 'Cadastro' },
