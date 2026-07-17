@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Package, AlertTriangle, Clock, Bell, ArrowRight, Loader2,
-  PackageOpen, ShoppingCart, MapPin, AlertCircle, TrendingDown,
+  PackageOpen, ClipboardCheck, AlertCircle, TrendingDown,
   TrendingUp, ChevronRight, Pill, Syringe,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,6 @@ interface DashboardData {
   lotesVencendo: number
   alertasNaoLidos: number
   produtosEmFalta: number
-  comprasPendentes: number
   lotesVencidos: number
   maisVendidos: number
 }
@@ -84,17 +83,6 @@ export default function EstoqueDashboardPage() {
           .gt('estoque_minimo', 0)
         const produtosEmFalta = todosProdutos?.filter(p => p.saldo_atual <= p.estoque_minimo).length ?? 0
 
-        // Compras pendentes (no status column, count all open compras as proxy)
-        let comprasPendentes = 0
-        try {
-          const { count: cp } = await supabase
-            .from('compras')
-            .select('*', { count: 'exact', head: true })
-          comprasPendentes = cp ?? 0
-        } catch {
-          comprasPendentes = 0
-        }
-
         // Lotes vencidos
         const { count: vencidos } = await supabase
           .from('lotes')
@@ -120,13 +108,12 @@ export default function EstoqueDashboardPage() {
           lotesVencendo: vencendo ?? 0,
           alertasNaoLidos: alertas ?? 0,
           produtosEmFalta: produtosEmFalta,
-          comprasPendentes: comprasPendentes,
           lotesVencidos: vencidos ?? 0,
           maisVendidos: maisVendidos,
         })
       } catch (err) {
         console.error(err)
-        setData({ totalProdutos: 0, abaixoMinimo: 0, lotesVencendo: 0, alertasNaoLidos: 0, produtosEmFalta: 0, comprasPendentes: 0, lotesVencidos: 0, maisVendidos: 0 })
+        setData({ totalProdutos: 0, abaixoMinimo: 0, lotesVencendo: 0, alertasNaoLidos: 0, produtosEmFalta: 0, lotesVencidos: 0, maisVendidos: 0 })
       }
       setLoading(false)
     }
@@ -142,7 +129,7 @@ export default function EstoqueDashboardPage() {
     {
       label: 'Abaixo do Minimo', value: data?.abaixoMinimo ?? 0, icon: AlertTriangle,
       desc: 'Produtos criticos', pct: data?.totalProdutos ? Math.round(((data?.abaixoMinimo ?? 0) / data.totalProdutos) * 100) : 0, trend: 'down' as const,
-      action: { label: 'Reabastecer', href: '/dashboard/estoque/compras' },
+      action: { label: 'Inventário', href: '/dashboard/estoque/inventario' },
     },
     {
       label: 'Lotes Vencendo (30d)', value: data?.lotesVencendo ?? 0, icon: Clock,
@@ -158,10 +145,9 @@ export default function EstoqueDashboardPage() {
 
   const navLinks = [
     { label: 'Produtos', href: '/dashboard/estoque/produtos', icon: PackageOpen, desc: 'Gerenciar catalogo' },
-    { label: 'Compras', href: '/dashboard/estoque/compras', icon: ShoppingCart, desc: 'Ordens de compra' },
+    { label: 'Inventário', href: '/dashboard/estoque/inventario', icon: ClipboardCheck, desc: 'Contagem e ajustes' },
     { label: 'Lotes', href: '/dashboard/estoque/lotes', icon: Clock, desc: 'Controle de validades' },
     { label: 'Alertas', href: '/dashboard/estoque/alertas', icon: AlertCircle, desc: 'Notificacoes' },
-    { label: 'Localizacoes', href: '/dashboard/estoque/localizacoes', icon: MapPin, desc: 'Enderecamento' },
     { label: 'Fornecedores', href: '/dashboard/estoque/fornecedores', icon: PackageOpen, desc: 'Cadastro' },
   ]
 
@@ -188,11 +174,11 @@ export default function EstoqueDashboardPage() {
               <PackageOpen className="mr-1.5 h-4 w-4" />Gerenciar
             </Button>
             <Button
-              onClick={() => router.push('/dashboard/estoque/compras')}
+              onClick={() => router.push('/dashboard/estoque/inventario')}
               className="h-10 rounded-xl bg-primary px-4 text-[13px] font-medium shadow-sm transition-all hover:brightness-110 active:scale-[0.97]"
               style={{ transitionTimingFunction: 'var(--ease-out)' }}
             >
-              <ShoppingCart className="mr-1.5 h-4 w-4" />Nova Compra
+              <ClipboardCheck className="mr-1.5 h-4 w-4" />Inventário
             </Button>
           </div>
         </div>
@@ -282,7 +268,6 @@ export default function EstoqueDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: 'Produtos em falta', value: data?.produtosEmFalta ?? 0, icon: Pill, color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20' },
-                  { label: 'Compras pendentes', value: data?.comprasPendentes ?? 0, icon: ShoppingCart, color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20' },
                   { label: 'Lotes vencidos', value: data?.lotesVencidos ?? 0, icon: Clock, color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20' },
                   { label: 'Mov. saida (30d)', value: data?.maisVendidos ?? 0, icon: Syringe, color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' },
                 ].map((item) => {

@@ -33,7 +33,6 @@ const quickActions = [
   { label: 'Novo Paciente', href: '/dashboard/pacientes/cadastro', icon: Users, color: 'bg-blue-500' },
   { label: 'Novo Agendamento', href: '/dashboard/agendamentos/novo', icon: Calendar, color: 'bg-violet-500' },
   { label: 'Nova Receita', href: '/dashboard/receitas/nova', icon: FileText, color: 'bg-emerald-500' },
-  { label: 'Nova Compra', href: '/dashboard/estoque/compras', icon: Package, color: 'bg-amber-500' },
 ]
 
 export default function DashboardPage() {
