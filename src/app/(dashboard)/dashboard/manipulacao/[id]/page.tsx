@@ -194,7 +194,7 @@ export default function OrdemDetalhesPage() {
     }
   }
 
-  const canAdvance = order && !['DRAFT', 'DISPENSED', 'CANCELLED', 'DESTROYED', 'PRESCRIPTION_PENDING', 'PRESCRIPTION_REJECTED', 'RELEASE_REJECTED', 'REWORK_REQUIRED', 'AWAITING_FINAL_QUALITY_CONTROL', 'OUT_FOR_DELIVERY'].includes(order.status)
+  const canAdvance = order && !['DRAFT', 'DISPENSED', 'CANCELLED', 'DESTROYED', 'PRESCRIPTION_PENDING', 'PRESCRIPTION_REJECTED', 'RELEASE_REJECTED', 'REWORK_REQUIRED', 'AWAITING_FINAL_QUALITY_CONTROL', 'OUT_FOR_DELIVERY', 'MISSING_STOCK', 'CHECKING_STOCK'].includes(order.status)
 
   const isWeighingPhase = order?.status === 'AWAITING_WEIGHING' || order?.status === 'IN_WEIGHING'
 
@@ -578,6 +578,29 @@ export default function OrdemDetalhesPage() {
                 {advancing ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-1.5 h-4 w-4" />}
                 {advancing ? 'Avancando...' : 'Avancar'}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Warning: estoque insuficiente */}
+      {(order?.status === 'MISSING_STOCK' || order?.status === 'CHECKING_STOCK' || order?.status === 'AWAITING_PURCHASE') && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800/30 dark:bg-amber-900/10">
+          <CardContent className="flex items-start gap-3 pt-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                {order.status === 'MISSING_STOCK' ? 'Estoque insuficiente' :
+                 order.status === 'CHECKING_STOCK' ? 'Verificando estoque...' :
+                 'Aguardando compra'}
+              </p>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                {order.status === 'MISSING_STOCK'
+                  ? 'Nao ha estoque disponivel para todos os itens da ordem. Compre os insumos faltantes e tente novamente.'
+                  : order.status === 'CHECKING_STOCK'
+                  ? 'Verificando disponibilidade de estoque para os itens da ordem.'
+                  : 'Aguardando a compra dos insumos faltantes.'}
+              </p>
             </div>
           </CardContent>
         </Card>
