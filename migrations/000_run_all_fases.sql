@@ -1,0 +1,18 @@
+-- ============================================================
+-- CLJ Clinica — RUN ALL PHASES
+-- Execute in order: 010 → 011 → 012 → 013 → 014
+-- ============================================================
+-- IMPORTANTE: Execute cada arquivo separadamente no SQL Editor
+--
+-- Ordem:
+-- 1. 010_fase1_fundacao.sql      (blocked_quantity, business_events, views, constraints)
+-- 2. 011_fase2_compras_financeiro.sql  (purchase_orders, goods_receipts, accounts_payable, financial)
+-- 3. 012_fase3_compounding_custos.sql  (compounding_order_costs, complete_production_v2)
+-- 4. 013_fase4_vendas_recebiveis.sql   (accounts_receivable, receipts, customer_advances)
+-- 5. 014_fase5_devolucoes_ajustes.sql  (supplier_returns, inventory_counts)
+--
+-- Apos aplicar, atualizar frontend:
+-- - Financeiro dashboard: mostrar AP/AR totals
+-- - Estoque dashboard: usar product_inventory_balances view
+-- - Nova pagina: conciliacao
+-- ============================================================

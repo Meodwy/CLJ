@@ -2,8 +2,8 @@
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'recepcionista'
-    CHECK (role IN ('admin', 'medico', 'recepcionista', 'enfermeiro')),
+  role TEXT NOT NULL DEFAULT 'atendente'
+    CHECK (role IN ('administrador', 'farmaceutico', 'atendente', 'manipulador', 'estoquista', 'financeiro')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -33,7 +33,7 @@ BEGIN
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'recepcionista')
+    COALESCE(NEW.raw_user_meta_data->>'role', 'atendente')
   );
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN

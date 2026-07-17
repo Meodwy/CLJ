@@ -36,9 +36,14 @@ export async function updateSession(request: NextRequest) {
     authFailed = true
   }
 
-  // CRITICAL: on auth fail, return response directly — never redirect
-  // let client-side AuthProvider handle session validation
   if (authFailed) {
+    // Redirect to /login only for dashboard routes
+    // Allow API routes and static files to pass through
+    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
     return supabaseResponse
   }
 

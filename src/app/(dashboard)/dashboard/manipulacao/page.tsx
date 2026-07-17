@@ -1,15 +1,193 @@
 'use client'
 
-import { Construction } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/auth-context'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  FlaskConical,
+  Plus,
+  Columns3,
+  ClipboardList,
+  Beaker,
+  CheckCircle2,
+  PackageCheck,
+  AlertCircle,
+  Clock,
+  ArrowRight,
+  Loader2,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-export default function PlaceholderPage() {
+interface SummaryCard {
+  label: string
+  value: number
+  icon: React.ReactNode
+  color: string
+}
+
+export default function ManipulacaoPage() {
+  const router = useRouter()
+  const { profile } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [summary, setSummary] = useState<SummaryCard[]>([
+    { label: 'Aguardando Analise', value: 0, icon: <ClipboardList className="h-5 w-5" />, color: 'text-amber-500' },
+    { label: 'Em Producao', value: 0, icon: <Beaker className="h-5 w-5" />, color: 'text-indigo-500' },
+    { label: 'Aguardando Liberacao', value: 0, icon: <Clock className="h-5 w-5" />, color: 'text-orange-500' },
+    { label: 'Prontas para Retirada', value: 0, icon: <PackageCheck className="h-5 w-5" />, color: 'text-emerald-500' },
+  ])
+
+  useEffect(() => {
+    async function loadSummary() {
+      try {
+        const { getSummary } = await import('@/lib/compounding/service')
+        const data = await getSummary('00000000-0000-0000-0000-000000000000') // placeholder
+        setSummary([
+          { label: 'Aguardando Analise', value: data.awaiting_analysis, icon: <ClipboardList className="h-5 w-5" />, color: 'text-amber-500' },
+          { label: 'Em Producao', value: data.in_production, icon: <Beaker className="h-5 w-5" />, color: 'text-indigo-500' },
+          { label: 'Aguardando Liberacao', value: data.awaiting_release, icon: <Clock className="h-5 w-5" />, color: 'text-orange-500' },
+          { label: 'Prontas para Retirada', value: data.ready_for_pickup, icon: <PackageCheck className="h-5 w-5" />, color: 'text-emerald-500' },
+        ])
+      } catch {
+        // Keep zeros when no clinic_id or table doesn't exist yet
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadSummary()
+  }, [])
+
+  const canManipulate = profile?.role === 'administrador' || profile?.role === 'manipulador' || profile?.role === 'farmaceutico'
+
   return (
-    <div className="flex flex-col items-center justify-center py-24">
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-        <Construction className="h-8 w-8 text-muted-foreground/50" />
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/10">
+              <FlaskConical className="h-[18px] w-[18px] text-indigo-500" />
+            </div>
+            <div>
+              <h1 className="font-heading text-xl font-medium text-foreground">
+                Manipulacao
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {canManipulate
+                  ? 'Gerencie ordens de manipulacao, separacao, pesagem e liberacao'
+                  : 'Acompanhe o status das ordens de manipulacao'}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => router.push('/dashboard/manipulacao/nova')}
+          >
+            <Plus className="h-4 w-4" />
+            Nova Ordem
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/dashboard/manipulacao/kanban')}
+          >
+            <Columns3 className="h-4 w-4" />
+            Kanban
+          </Button>
+        </div>
       </div>
-      <h1 className="font-heading text-xl font-medium text-foreground">Em breve</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Este módulo está em desenvolvimento</p>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {summary.map((item) => (
+          <Card key={item.label} size="sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {item.label}
+                </CardTitle>
+                <span className={item.color}>{item.icon}</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/30" />
+              ) : (
+                <p className="font-heading text-2xl font-semibold text-foreground">
+                  {item.value}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <button
+          onClick={() => router.push('/dashboard/manipulacao?tab=analise')}
+          className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-all duration-200 hover:border-amber-500/30 hover:bg-amber-500/[0.03]"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 transition-all duration-200 group-hover:bg-amber-500/15">
+            <ClipboardList className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground">Em Analise</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Revisao farmaceutica</p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-all duration-200 group-hover:text-amber-500 group-hover:translate-x-0.5" />
+        </button>
+
+        <button
+          onClick={() => router.push('/dashboard/manipulacao?tab=producao')}
+          className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-all duration-200 hover:border-indigo-500/30 hover:bg-indigo-500/[0.03]"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 transition-all duration-200 group-hover:bg-indigo-500/15">
+            <Beaker className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground">Em Producao</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Separacao, pesagem, manipulacao</p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-all duration-200 group-hover:text-indigo-500 group-hover:translate-x-0.5" />
+        </button>
+
+        <button
+          onClick={() => router.push('/dashboard/manipulacao?tab=liberacao')}
+          className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-all duration-200 hover:border-emerald-500/30 hover:bg-emerald-500/[0.03]"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 transition-all duration-200 group-hover:bg-emerald-500/15">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground">Liberacao</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">CQ final e liberacao farmaceutica</p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-all duration-200 group-hover:text-emerald-500 group-hover:translate-x-0.5" />
+        </button>
+      </div>
+
+      {/* Recent Orders / Empty State */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ordens Recentes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+              <FlaskConical className="h-6 w-6 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Nenhuma ordem de manipulacao encontrada</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              As ordens aparecerao aqui assim que forem criadas a partir de receitas aprovadas.
+            </p>
+            <div className="mt-6 flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>O modulo Kanban esta disponivel para visualizacao em colunas</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

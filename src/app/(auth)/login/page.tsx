@@ -40,7 +40,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <button onClick={toggle} aria-label={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
-        className="fixed right-6 top-6 z-50 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground/60 shadow-sm transition-all hover:bg-accent hover:text-foreground">
+        className="fixed right-6 top-6 z-50 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground/60 shadow-sm transition-[transform,background-color] duration-150 ease-[var(--ease-out)] hover:bg-accent hover:text-foreground active:scale-[0.92]">
         {theme === 'light' ? <Moon className="h-4 w-4" aria-hidden /> : <Sun className="h-4 w-4" aria-hidden />}
       </button>
 
@@ -96,7 +96,7 @@ export default function LoginPage() {
               <Label htmlFor="email" className="text-[13px] font-medium text-foreground/80">Email</Label>
               <Input id="email" name="email" type="email" placeholder="seu@email.com" disabled={loading}
                 aria-invalid={!!errors.email}
-                className="h-[46px] rounded-xl border-border/80 bg-card px-4 text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/40 focus-visible:border-primary/40 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)_/_0.08)]" />
+                className="h-[46px] rounded-xl border-border/80 bg-card px-4 text-[15px] shadow-sm transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out)] placeholder:text-muted-foreground/40 focus-visible:border-primary/40 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)_/_0.08)]" />
               {errors.email && <p className="flex items-center gap-1.5 text-[13px] text-destructive"><span className="inline-block h-1 w-1 rounded-full bg-destructive" />{errors.email}</p>}
             </div>
             <div className="space-y-1.5">
@@ -104,9 +104,9 @@ export default function LoginPage() {
               <div className="relative">
                 <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                   disabled={loading} aria-invalid={!!errors.password}
-                  className="h-[46px] rounded-xl border-border/80 bg-card px-4 pr-[42px] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/40 focus-visible:border-primary/40 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)_/_0.08)]" />
+                  className="h-[46px] rounded-xl border-border/80 bg-card px-4 pr-[42px] text-[15px] shadow-sm transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out)] placeholder:text-muted-foreground/40 focus-visible:border-primary/40 focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)_/_0.08)]" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-colors hover:text-muted-foreground" tabIndex={-1}>
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/40 transition-[color,transform] duration-150 ease-[var(--ease-out)] hover:text-muted-foreground active:scale-[0.92]" tabIndex={-1}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
