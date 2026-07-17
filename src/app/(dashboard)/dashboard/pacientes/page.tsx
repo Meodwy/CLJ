@@ -38,7 +38,9 @@ export default function PacientesPage() {
     if (q && q.trim()) {
       const term = q.trim()
       const cpf = term.replace(/\D/g, '')
-      query = query.or(`nome.ilike.%${term}%,cpf.ilike.%${cpf}%`)
+      const filters = [`nome.ilike.%${term}%`]
+      if (cpf) filters.push(`cpf.ilike.%${cpf}%`)
+      query = query.or(filters.join(','))
     }
 
     query = query.order('nome')
@@ -158,8 +160,6 @@ export default function PacientesPage() {
               className="group relative rounded-xl border border-border bg-card text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md active:scale-[0.98]"
               style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
             >
-              <span className="absolute left-0 top-0 h-full w-[3px] rounded-l-xl bg-gradient-to-b from-primary/50 to-primary/10 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-
               <div className="p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${hashColor(p.id)} text-[15px] font-semibold shadow-sm`}>
