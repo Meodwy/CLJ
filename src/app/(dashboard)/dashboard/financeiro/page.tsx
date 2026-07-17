@@ -46,6 +46,7 @@ export default function FinanceiroPage() {
       case 'semana':  start = new Date(now.getTime() - 7 * 86400000); break
       case 'mes':     start = new Date(now.getFullYear(), now.getMonth(), 1); break
       case 'ano':     start = new Date(now.getFullYear(), 0, 1); break
+      default:        start = new Date(now.getFullYear(), now.getMonth(), 1); break
     }
     return start.toISOString()
   }

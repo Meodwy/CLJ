@@ -47,34 +47,31 @@ export default function ManipulacaoPage() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
 
   useEffect(() => {
-    async function loadSummary() {
+    async function load() {
       try {
-        const { getSummary } = await import('@/lib/compounding/service')
-        const data = await getSummary()
-        setSummary([
-          { label: 'Aguardando Analise', value: data.awaiting_analysis, icon: <ClipboardList className="h-5 w-5" />, color: 'text-amber-500' },
-          { label: 'Em Producao', value: data.in_production, icon: <Beaker className="h-5 w-5" />, color: 'text-indigo-500' },
-          { label: 'Aguardando Liberacao', value: data.awaiting_release, icon: <Clock className="h-5 w-5" />, color: 'text-orange-500' },
-          { label: 'Prontas para Retirada', value: data.ready_for_pickup, icon: <PackageCheck className="h-5 w-5" />, color: 'text-emerald-500' },
+        const [{ getSummary }, { createClient }] = await Promise.all([
+          import('@/lib/compounding/service'),
+          import('@/lib/supabase/client'),
         ])
-      } catch {
-        // Keep zeros when no clinic_id or table doesn't exist yet
-      }
-    }
-    async function loadRecent() {
-      try {
-        const supabase = (await import('@/lib/supabase/client')).createClient()
-        const { data, error } = await supabase
-          .from('compounding_orders')
-          .select('id, internal_number, status, patient_name, created_at')
-          .order('created_at', { ascending: false })
-          .limit(10)
-        if (!error && data) setRecentOrders(data as RecentOrder[])
+        const [summaryData, ordersRes] = await Promise.all([
+          getSummary(),
+          createClient()
+            .from('compounding_orders')
+            .select('id, internal_number, status, patient_name, created_at')
+            .order('created_at', { ascending: false })
+            .limit(10),
+        ])
+        setSummary([
+          { label: 'Aguardando Analise', value: summaryData.awaiting_analysis, icon: <ClipboardList className="h-5 w-5" />, color: 'text-amber-500' },
+          { label: 'Em Producao', value: summaryData.in_production, icon: <Beaker className="h-5 w-5" />, color: 'text-indigo-500' },
+          { label: 'Aguardando Liberacao', value: summaryData.awaiting_release, icon: <Clock className="h-5 w-5" />, color: 'text-orange-500' },
+          { label: 'Prontas para Retirada', value: summaryData.ready_for_pickup, icon: <PackageCheck className="h-5 w-5" />, color: 'text-emerald-500' },
+        ])
+        if (!ordersRes.error && ordersRes.data) setRecentOrders(ordersRes.data as RecentOrder[])
       } catch { /* ignore */ }
+      setLoading(false)
     }
-    loadSummary()
-    loadRecent()
-    setLoading(false)
+    load()
   }, [])
 
   const canManipulate = profile?.role === 'administrador' || profile?.role === 'manipulador' || profile?.role === 'farmaceutico'

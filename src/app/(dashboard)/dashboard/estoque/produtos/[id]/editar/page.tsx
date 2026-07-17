@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { useBreadcrumbLabel } from '@/contexts/breadcrumb-context'
 
 const produtoSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
@@ -54,6 +55,7 @@ const unidades = [
 export default function EditarProdutoPage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
+  const { setDynamicLabel } = useBreadcrumbLabel()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [categorias, setCategorias] = useState<CategoriaOption[]>([])
@@ -113,6 +115,7 @@ export default function EditarProdutoPage() {
           estoque_minimo: String(produto.estoque_minimo),
           estoque_maximo: produto.estoque_maximo ? String(produto.estoque_maximo) : '0',
         })
+        setDynamicLabel(produto.nome)
       } catch (err) {
         console.error(err)
         toast.error('Erro ao carregar produto')
@@ -121,7 +124,8 @@ export default function EditarProdutoPage() {
       setLoading(false)
     }
     load()
-  }, [params.id, router])
+    return () => setDynamicLabel(null)
+  }, [params.id, router, setDynamicLabel])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

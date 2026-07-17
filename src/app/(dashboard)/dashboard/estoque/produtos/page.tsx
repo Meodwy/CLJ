@@ -58,7 +58,7 @@ export default function ProdutosListPage() {
           </p>
         </div>
         <Button onClick={() => router.push('/dashboard/estoque/produtos/novo')}
-          className="h-10 rounded-xl bg-primary px-5 text-[13px] font-medium shadow-sm transition-all duration-150 ease-[var(--ease-out)] ease-[var(--ease-out)] hover:brightness-110 active:scale-[0.97]">
+          className="h-10 rounded-xl bg-primary px-5 text-[13px] font-medium shadow-sm transition-all duration-150 hover:brightness-110 active:scale-[0.97]">
           <Plus className="mr-1.5 h-4 w-4" />Novo Produto
         </Button>
       </div>
@@ -67,7 +67,7 @@ export default function ProdutosListPage() {
       <div className="relative max-w-md">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/30" />
         <input ref={inputRef} placeholder="Buscar por nome, código de barras ou SKU…" value={search} onChange={e => setSearch(e.target.value)}
-          className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-10 text-[14px] text-foreground outline-none transition-all duration-150 ease-[var(--ease-out)] ease-[var(--ease-out)] placeholder:text-muted-foreground/40 focus:border-primary/30 focus:shadow-[0_0_0_3px_color-mix(in oklch, var(--primary) 6%, transparent)]" />
+          className="h-11 w-full rounded-xl border border-border bg-card pl-10 pr-10 text-[14px] text-foreground outline-none transition-all duration-150 placeholder:text-muted-foreground/40 focus:border-primary/30 focus:shadow-[0_0_0_3px_color-mix(in oklch, var(--primary) 6%, transparent)]" />
         {search && <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground"><X className="h-4 w-4" /></button>}
         {!loading && search && <p className="mt-1.5 text-[13px] text-muted-foreground/60">{filtered.length} de {produtos.length}</p>}
       </div>

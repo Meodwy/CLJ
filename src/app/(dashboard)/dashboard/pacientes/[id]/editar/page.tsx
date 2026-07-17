@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { z } from 'zod'
+import { useBreadcrumbLabel } from '@/contexts/breadcrumb-context'
 
 const pacienteSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
@@ -36,6 +37,7 @@ type PacienteFormData = z.infer<typeof pacienteSchema>
 export default function EditarPacientePage() {
   const router = useRouter()
   const params = useParams<{ id: string }>()
+  const { setDynamicLabel } = useBreadcrumbLabel()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<
@@ -69,10 +71,12 @@ export default function EditarPacientePage() {
         telefone: formatPhoneDisplay(data.telefone),
         email: data.email || '',
       })
+      setDynamicLabel(data.nome)
       setLoading(false)
     }
     load()
-  }, [params.id, router])
+    return () => setDynamicLabel(null)
+  }, [params.id, router, setDynamicLabel])
 
   const formatCPF = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11)

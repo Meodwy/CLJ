@@ -37,10 +37,7 @@ export default function PacientesPage() {
 
     if (q && q.trim()) {
       const term = q.trim()
-      const cpf = term.replace(/\D/g, '')
-      const filters = [`nome.ilike.%${term}%`]
-      if (cpf) filters.push(`cpf.ilike.%${cpf}%`)
-      query = query.or(filters.join(','))
+      query = query.or(`nome.ilike.%${term}%,cpf.ilike.%${term.replace(/\D/g, '')}%`)
     }
 
     query = query.order('nome')

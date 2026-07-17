@@ -92,7 +92,7 @@ export function DashboardSidebar() {
               <span className={`relative z-10 shrink-0 transition-all duration-200 ${
                 isActive
                   ? 'text-primary'
-                  : 'text-sidebar-foreground/35 group-hover:text-sidebar-foreground/60'
+                  : 'text-sidebar-foreground/35'
               }`}>
                 {item.icon}
               </span>

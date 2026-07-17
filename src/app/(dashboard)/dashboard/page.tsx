@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Users, Calendar, FileText, Package, FlaskConical, DollarSign,
   BarChart3, TrendingUp, ArrowRight, Clock, AlertTriangle,
-  ChevronRight, Activity, Pill, Syringe, type LucideIcon
+  ChevronRight, Activity, Pill, Syringe, CheckCircle, type LucideIcon
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -35,16 +35,82 @@ const quickActions = [
   { label: 'Nova Receita', href: '/dashboard/receitas/nova', icon: FileText, color: 'bg-emerald-500' },
 ]
 
+interface KpiData {
+  pacientes: number
+  consultasHoje: number
+  receitasPendentes: number
+  alertasEstoque: number
+  agendamentosHoje: { time: string; patient: string; type: string; status: string }[]
+  alertasCriticos: { product: string; qty: number; min: number; severity: 'critical' | 'warning' }[]
+  atividadeHoje: { pacientes: number; receitas: number; movimentacoes: number }
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth()
   const router = useRouter()
-  const [stats, setStats] = useState<{ pacientes: number } | null>(null)
+  const [data, setData] = useState<KpiData | null>(null)
   const [mount, setMount] = useState(false)
   useEffect(() => { const t = setTimeout(() => setMount(true), 30); return () => clearTimeout(t) }, [])
+
   useEffect(() => {
     const load = async () => {
-      const { count } = await createClient().from('pacientes').select('*', { count: 'exact', head: true })
-      setStats({ pacientes: count ?? 0 })
+      const supabase = createClient()
+      const today = new Date().toISOString().split('T')[0]
+
+      try {
+        const [
+          { count: totalPacientes },
+          { count: consultasHoje },
+          { count: receitasPend },
+          { count: alertasNaoLidos },
+          agendamentosRes,
+          produtosBaixoRes,
+          { count: movHoje },
+        ] = await Promise.all([
+          supabase.from('pacientes').select('*', { count: 'exact', head: true }),
+          supabase.from('agendamentos').select('*', { count: 'exact', head: true }).eq('data', today),
+          supabase.from('prescriptions').select('*', { count: 'exact', head: true }).in('status', ['pending', 'under_review']),
+          supabase.from('alertas').select('*', { count: 'exact', head: true }).eq('lido', false),
+          supabase.from('agendamentos').select('id, hora_inicio, status, pacientes(nome, tipo_consulta)').eq('data', today).order('hora_inicio'),
+          supabase.from('produtos').select('id, nome, saldo_atual, estoque_minimo').gt('estoque_minimo', 0).order('saldo_atual').limit(6),
+          supabase.from('movimentacoes').select('*', { count: 'exact', head: true }).gte('created_at', today),
+        ])
+
+        const agendamentos = (agendamentosRes.data ?? []).map((a: any) => ({
+          time: a.hora_inicio?.slice(0, 5) ?? '--:--',
+          patient: a.pacientes?.nome ?? 'Paciente',
+          type: a.pacientes?.tipo_consulta ?? 'Consulta',
+          status: a.status,
+        }))
+
+        const prodBaixo = (produtosBaixoRes.data ?? []).map((p: any) => ({
+          product: p.nome,
+          qty: p.saldo_atual ?? 0,
+          min: p.estoque_minimo,
+          severity: (p.saldo_atual ?? 0) === 0 ? 'critical' as const : 'warning' as const,
+        }))
+
+        setData({
+          pacientes: totalPacientes ?? 0,
+          consultasHoje: consultasHoje ?? 0,
+          receitasPendentes: receitasPend ?? 0,
+          alertasEstoque: alertasNaoLidos ?? 0,
+          agendamentosHoje: agendamentos,
+          alertasCriticos: prodBaixo,
+          atividadeHoje: {
+            pacientes: consultasHoje ?? 0,
+            receitas: receitasPend ?? 0,
+            movimentacoes: movHoje ?? 0,
+          },
+        })
+      } catch (err) {
+        console.error('Erro ao carregar dashboard:', err)
+        setData({
+          pacientes: 0, consultasHoje: 0, receitasPendentes: 0, alertasEstoque: 0,
+          agendamentosHoje: [], alertasCriticos: [],
+          atividadeHoje: { pacientes: 0, receitas: 0, movimentacoes: 0 },
+        })
+      }
     }
     load()
   }, [])
@@ -53,55 +119,34 @@ export default function DashboardPage() {
 
   const kpis = [
     {
-      label: 'Pacientes', value: stats?.pacientes ?? 0, icon: Users,
-      change: '+12% este mes', trend: 'up',
+      label: 'Pacientes', value: data?.pacientes ?? 0, icon: Users,
+      change: 'Total cadastrados', trend: 'neutral',
       accent: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600 dark:text-blue-400',
       barColor: 'bg-blue-500', barWidth: 'w-3/4',
     },
     {
-      label: 'Consultas Hoje', value: 8, icon: Calendar,
-      change: '3 restantes', trend: 'neutral',
+      label: 'Consultas Hoje', value: data?.consultasHoje ?? 0, icon: Calendar,
+      change: `${data?.agendamentosHoje?.length ?? 0} agendados`, trend: 'neutral',
       accent: 'bg-violet-50 dark:bg-violet-900/20', iconColor: 'text-violet-600 dark:text-violet-400',
-      barColor: 'bg-violet-500', barWidth: 'w-1/2',
+      barColor: 'bg-violet-500', barWidth: data?.consultasHoje && data.consultasHoje > 0 ? 'w-1/2' : 'w-0',
     },
     {
-      label: 'Receitas Pendentes', value: 12, icon: FileText,
-      change: '2 urgentes', trend: 'down',
+      label: 'Receitas Pendentes', value: data?.receitasPendentes ?? 0, icon: FileText,
+      change: 'Aguardando revisao', trend: data?.receitasPendentes && data.receitasPendentes > 0 ? 'down' : 'neutral',
       accent: 'bg-emerald-50 dark:bg-emerald-900/20', iconColor: 'text-emerald-600 dark:text-emerald-400',
-      barColor: 'bg-emerald-500', barWidth: 'w-2/3',
+      barColor: 'bg-emerald-500', barWidth: data?.receitasPendentes && data.receitasPendentes > 0 ? 'w-2/3' : 'w-0',
     },
     {
-      label: 'Alertas Estoque', value: 5, icon: Package,
-      change: '3 criticos', trend: 'down',
+      label: 'Alertas Estoque', value: data?.alertasEstoque ?? 0, icon: Package,
+      change: `${data?.alertasCriticos?.filter(a => a.severity === 'critical').length ?? 0} criticos`, trend: data?.alertasEstoque && data.alertasEstoque > 0 ? 'down' : 'neutral',
       accent: 'bg-amber-50 dark:bg-amber-900/20', iconColor: 'text-amber-600 dark:text-amber-400',
-      barColor: 'bg-amber-500', barWidth: 'w-1/3',
+      barColor: 'bg-amber-500', barWidth: data?.alertasEstoque && data.alertasEstoque > 0 ? 'w-1/3' : 'w-0',
     },
   ]
-
-  const recentAppointments = [
-    { time: '08:00', patient: 'Maria Silva', type: 'Consulta', status: 'confirmado' },
-    { time: '09:30', patient: 'Joao Santos', type: 'Retorno', status: 'em andamento' },
-    { time: '10:00', patient: 'Ana Oliveira', type: 'Exame', status: 'confirmado' },
-    { time: '11:30', patient: 'Carlos Lima', type: 'Consulta', status: 'aguardando' },
-    { time: '14:00', patient: 'Fernanda Costa', type: 'Retorno', status: 'confirmado' },
-  ]
-
-  const stockAlerts = [
-    { product: 'Dipirona 500mg', qty: 12, min: 50, severity: 'critical' as const },
-    { product: 'Amoxicilina 500mg', qty: 8, min: 30, severity: 'critical' as const },
-    { product: 'Paracetamol 750mg', qty: 25, min: 40, severity: 'warning' as const },
-    { product: 'Soro Fisiologico 500ml', qty: 18, min: 20, severity: 'warning' as const },
-  ]
-
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
-  const today = new Date()
-  const currentDay = today.getDate()
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).getDay()
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
 
   return (
     <div className="mx-auto max-w-7xl">
-      {/* ─── Welcome Header ─── */}
+      {/* Welcome Header */}
       <div
         className={`mb-8 transition-all duration-500 ${mount ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
         style={{ transitionTimingFunction: 'var(--ease-out)' }}
@@ -134,7 +179,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── KPI Cards with Accent Bars ─── */}
+      {/* KPI Cards */}
       <div
         className={`mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4 transition-all duration-500 delay-75 ${mount ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
         style={{ transitionTimingFunction: 'var(--ease-out)' }}
@@ -163,7 +208,6 @@ export default function DashboardPage() {
                 <p className="text-[13px] font-medium text-muted-foreground">{kpi.label}</p>
                 <p className="mt-1 font-heading text-[28px] font-bold tracking-tight text-foreground">{kpi.value}</p>
               </div>
-              {/* Progress bar at bottom */}
               <div className="mx-5 mb-4 h-1.5 rounded-full bg-muted">
                 <div className={`h-full rounded-full ${kpi.barColor} transition-all duration-700 ${kpi.barWidth}`} />
               </div>
@@ -172,22 +216,22 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* ─── Bento Grid: Activity + Mini Calendar + Recent Appointments + Stock Alerts ─── */}
+      {/* Bento Grid */}
       <div className="mb-8 grid gap-5 lg:grid-cols-3">
-        {/* Activity / Quick Stats — spans 1 column */}
+        {/* Activity */}
         <div
           className={`rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-500 delay-[100ms] ${mount ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
           style={{ transitionTimingFunction: 'var(--ease-out)' }}
         >
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-heading text-[15px] font-semibold text-foreground">Atividade</h3>
+            <h3 className="font-heading text-[15px] font-semibold text-foreground">Atividade de Hoje</h3>
             <Activity className="h-4 w-4 text-muted-foreground/40" />
           </div>
           <div className="space-y-3">
             {[
-              { label: 'Pacientes hoje', value: 12, icon: Users, color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
-              { label: 'Receitas emitidas', value: 8, icon: FileText, color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
-              { label: 'Produtos movimentados', value: 34, icon: Package, color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+              { label: 'Consultas hoje', value: data?.atividadeHoje?.pacientes ?? 0, icon: Users, color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
+              { label: 'Receitas pendentes', value: data?.atividadeHoje?.receitas ?? 0, icon: FileText, color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' },
+              { label: 'Movimentacoes hoje', value: data?.atividadeHoje?.movimentacoes ?? 0, icon: Package, color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
             ].map((item) => {
               const Icon = item.icon
               return (
@@ -212,28 +256,27 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Mini Calendar — spans 1 column */}
+        {/* Mini Calendar */}
         <div
           className={`rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-500 delay-[150ms] ${mount ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
           style={{ transitionTimingFunction: 'var(--ease-out)' }}
         >
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-heading text-[15px] font-semibold text-foreground">
-              {today.toLocaleDateString('pt-BR', { month: 'long' }).replace(/^./, m => m.toUpperCase())}
+              {new Date().toLocaleDateString('pt-BR', { month: 'long' }).replace(/^./, m => m.toUpperCase())}
             </h3>
             <Calendar className="h-4 w-4 text-muted-foreground/40" />
           </div>
           <div className="grid grid-cols-7 gap-1 text-center">
-            {weekDays.map((day) => (
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map((day) => (
               <div key={day} className="py-1 text-[11px] font-medium text-muted-foreground/50">{day}</div>
             ))}
-            {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+            {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay() }).map((_, i) => (
               <div key={`empty-${i}`} />
             ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
+            {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }).map((_, i) => {
               const day = i + 1
-              const isToday = day === currentDay
-              const hasEvent = [3, 8, 12, 15, 19, 22, 27].includes(day)
+              const isToday = day === new Date().getDate()
               return (
                 <div
                   key={day}
@@ -244,9 +287,6 @@ export default function DashboardPage() {
                   }`}
                 >
                   {day}
-                  {hasEvent && !isToday && (
-                    <span className="absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary/60" />
-                  )}
                 </div>
               )
             })}
@@ -254,19 +294,21 @@ export default function DashboardPage() {
           <div className="mt-4 space-y-2">
             <p className="text-[12px] font-medium text-muted-foreground">Eventos do dia</p>
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1.5">
-                <div className="h-2 w-2 rounded-full bg-blue-500" />
-                <span className="text-[12px] text-blue-700 dark:text-blue-300">08:00 - Consulta: M. Silva</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-md bg-violet-50 dark:bg-violet-900/20 px-2.5 py-1.5">
-                <div className="h-2 w-2 rounded-full bg-violet-500" />
-                <span className="text-[12px] text-violet-700 dark:text-violet-300">14:00 - Retorno: F. Costa</span>
-              </div>
+              {(data?.agendamentosHoje ?? []).length > 0 ? (
+                data!.agendamentosHoje.slice(0, 3).map((apt) => (
+                  <div key={`${apt.time}-${apt.patient}`} className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1.5">
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span className="text-[12px] text-blue-700 dark:text-blue-300">{apt.time} - {apt.patient}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[12px] text-muted-foreground/60">Nenhum agendamento hoje</p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Recent Appointments — spans 1 column */}
+        {/* Agenda de Hoje */}
         <div
           className={`rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-500 delay-[200ms] ${mount ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
           style={{ transitionTimingFunction: 'var(--ease-out)' }}
@@ -281,33 +323,40 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="space-y-1">
-            {recentAppointments.map((apt) => (
-              <div
-                key={`${apt.time}-${apt.patient}`}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground">
-                  {apt.time}
+            {(data?.agendamentosHoje ?? []).length > 0 ? (
+              data!.agendamentosHoje.map((apt) => (
+                <div
+                  key={`${apt.time}-${apt.patient}`}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[11px] font-semibold text-muted-foreground">
+                    {apt.time}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-foreground">{apt.patient}</p>
+                    <p className="text-[11px] text-muted-foreground/60">{apt.type}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    apt.status === 'confirmado' || apt.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                    apt.status === 'realizado' || apt.status === 'completed' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                    'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                  }`}>
+                    {apt.status}
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/20" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-foreground">{apt.patient}</p>
-                  <p className="text-[11px] text-muted-foreground/60">{apt.type}</p>
-                </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  apt.status === 'confirmado' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                  apt.status === 'em andamento' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                  'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                }`}>
-                  {apt.status}
-                </span>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/20" />
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Calendar className="mb-2 h-8 w-8 text-muted-foreground/20" />
+                <p className="text-[13px] text-muted-foreground/60">Nenhum agendamento para hoje</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
 
-      {/* ─── Bottom Row: Stock Alerts + Modules ─── */}
+      {/* Bottom Row */}
       <div className="mb-8 grid gap-5 lg:grid-cols-2">
         {/* Stock Alerts */}
         <div
@@ -318,7 +367,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <h3 className="font-heading text-[15px] font-semibold text-foreground">Alertas de Estoque</h3>
               <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-                {stockAlerts.filter(a => a.severity === 'critical').length} criticos
+                {(data?.alertasCriticos ?? []).filter(a => a.severity === 'critical').length} criticos
               </span>
             </div>
             <button
@@ -329,33 +378,40 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="space-y-2">
-            {stockAlerts.map((alert) => (
-              <div key={alert.product} className="flex items-center gap-3 rounded-lg px-3 py-2.5">
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                  alert.severity === 'critical' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                }`}>
-                  <AlertTriangle className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-foreground">{alert.product}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="h-1.5 rounded-full bg-muted">
-                        <div
-                          className={`h-full rounded-full ${alert.severity === 'critical' ? 'bg-rose-500' : 'bg-amber-500'}`}
-                          style={{ width: `${Math.min((alert.qty / alert.min) * 100, 100)}%` }}
-                        />
+            {(data?.alertasCriticos ?? []).length > 0 ? (
+              data!.alertasCriticos.map((alert) => (
+                <div key={alert.product} className="flex items-center gap-3 rounded-lg px-3 py-2.5">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                    alert.severity === 'critical' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                  }`}>
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-foreground">{alert.product}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="flex-1">
+                        <div className="h-1.5 rounded-full bg-muted">
+                          <div
+                            className={`h-full rounded-full ${alert.severity === 'critical' ? 'bg-rose-500' : 'bg-amber-500'}`}
+                            style={{ width: `${Math.min((alert.qty / alert.min) * 100, 100)}%` }}
+                          />
+                        </div>
                       </div>
+                      <span className={`text-[11px] font-medium ${
+                        alert.severity === 'critical' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
+                      }`}>
+                        {alert.qty} / {alert.min}
+                      </span>
                     </div>
-                    <span className={`text-[11px] font-medium ${
-                      alert.severity === 'critical' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'
-                    }`}>
-                      {alert.qty} / {alert.min}
-                    </span>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8">
+                <CheckCircle className="mb-2 h-8 w-8 text-emerald-500/40" />
+                <p className="text-[13px] text-muted-foreground/60">Estoque dentro do nivel ideal</p>
               </div>
-            ))}
+            )}
           </div>
           <button
             onClick={() => router.push('/dashboard/estoque/alertas')}
@@ -366,7 +422,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Quick Module Grid — right column */}
+        {/* Quick Module Grid */}
         <div
           className={`rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-500 delay-[300ms] ${mount ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
           style={{ transitionTimingFunction: 'var(--ease-out)' }}

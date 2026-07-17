@@ -1,10 +1,13 @@
 'use client'
 
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
+import { BreadcrumbProvider, useBreadcrumbLabel } from '@/contexts/breadcrumb-context'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { usePathname, useRouter } from 'next/navigation'
 import { Loader2, Bell, ChevronRight } from 'lucide-react'
 import { useCallback } from 'react'
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const breadcrumbLabels: Record<string, string> = {
   'dashboard': 'Dashboard',
@@ -17,16 +20,30 @@ const breadcrumbLabels: Record<string, string> = {
   'relatorios': 'Relatorios',
   'assistente-ia': 'Assistente IA',
   'configuracoes': 'Configuracoes',
+  'editar': 'Editar',
+  'novo': 'Novo',
+  'cadastro': 'Cadastro',
+  'kanban': 'Kanban',
+  'inventario': 'Inventário',
+  'movimentacoes': 'Movimentações',
+  'produtos': 'Produtos',
+  'lotes': 'Lotes',
+  'fornecedores': 'Fornecedores',
+  'alertas': 'Alertas',
+  'nova': 'Nova',
+  'vendas': 'Vendas',
+  'despesas': 'Despesas',
 }
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const { loading, profile } = useAuth()
+  const { dynamicLabel } = useBreadcrumbLabel()
   const pathname = usePathname()
   const router = useRouter()
 
   const segments = pathname.split('/').filter(Boolean)
   const currentSegment = segments[segments.length - 1]
-  const pageTitle = breadcrumbLabels[currentSegment] ?? 'Dashboard'
+  const pageTitle = breadcrumbLabels[currentSegment] ?? dynamicLabel ?? 'Dashboard'
 
   const navigateBreadcrumb = useCallback((href: string) => {
     router.push(href)
@@ -55,8 +72,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             {segments.length > 1 && (
               <nav className="flex items-center gap-1.5 text-[13px]">
                 {segments.map((seg, i) => {
-                  const label = breadcrumbLabels[seg] ?? seg
                   const isLast = i === segments.length - 1
+                  const isUuid = UUID_REGEX.test(seg)
+                  let label = breadcrumbLabels[seg] ?? seg
+                  // Use dynamicLabel for UUID segments or last segment
+                  if ((isUuid || isLast) && dynamicLabel) label = dynamicLabel
+                  else if (isUuid) label = '…'
                   const href = '/' + segments.slice(0, i + 1).join('/')
                   return (
                     <span key={seg} className="flex items-center gap-1.5">
@@ -80,7 +101,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Right side: notifications + avatar */}
           <div className="flex items-center gap-3">
             {/* Notification bell with badge */}
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/40 transition-[transform,background-color,color] duration-150 ease-[var(--ease-out)] hover:bg-muted hover:text-foreground/70 active:scale-[0.92]">
+            <button onClick={() => router.push('/dashboard/estoque/alertas')} className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/40 transition-[transform,background-color,color] duration-150 ease-[var(--ease-out)] hover:bg-muted hover:text-foreground/70 active:scale-[0.92]">
               <Bell className="h-[18px] w-[18px] stroke-[1.5]" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive shadow-sm" />
             </button>
@@ -106,7 +127,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <DashboardShell>{children}</DashboardShell>
+      <BreadcrumbProvider>
+        <DashboardShell>{children}</DashboardShell>
+      </BreadcrumbProvider>
     </AuthProvider>
   )
 }
