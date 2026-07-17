@@ -57,7 +57,7 @@ export default function ManipulacaoPage() {
           getSummary(),
           createClient()
             .from('compounding_orders')
-            .select('id, internal_number, status, patient_name, created_at')
+            .select('id, internal_number, status, patient_id, created_at')
             .order('created_at', { ascending: false })
             .limit(10),
         ])
@@ -67,7 +67,27 @@ export default function ManipulacaoPage() {
           { label: 'Aguardando Liberacao', value: summaryData.awaiting_release, icon: <Clock className="h-5 w-5" />, color: 'text-orange-500' },
           { label: 'Prontas para Retirada', value: summaryData.ready_for_pickup, icon: <PackageCheck className="h-5 w-5" />, color: 'text-emerald-500' },
         ])
-        if (!ordersRes.error && ordersRes.data) setRecentOrders(ordersRes.data as RecentOrder[])
+        if (!ordersRes.error && ordersRes.data) {
+          const orders = ordersRes.data as any[]
+          const patientIds = [...new Set(orders.map(o => o.patient_id).filter(Boolean))]
+          const patientMap: Record<string, string> = {}
+          if (patientIds.length > 0) {
+            const { data: patients } = await createClient()
+              .from('pacientes')
+              .select('id, nome')
+              .in('id', patientIds)
+            if (patients) {
+              for (const p of patients) patientMap[p.id] = p.nome
+            }
+          }
+          setRecentOrders(orders.map(o => ({
+            id: o.id,
+            internal_number: o.internal_number,
+            status: o.status,
+            patient_name: patientMap[o.patient_id] ?? 'Paciente',
+            created_at: o.created_at,
+          })))
+        }
       } catch { /* ignore */ }
       setLoading(false)
     }
