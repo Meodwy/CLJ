@@ -31,7 +31,7 @@ const modules: ModuleCard[] = [
 
 const quickActions = [
   { label: 'Novo Paciente', href: '/dashboard/pacientes/cadastro', icon: Users, color: 'bg-blue-500' },
-  { label: 'Novo Agendamento', href: '/dashboard/agendamentos/novo', icon: Calendar, color: 'bg-violet-500' },
+  { label: 'Novo Agendamento', href: '/dashboard/agendamentos', icon: Calendar, color: 'bg-violet-500' },
   { label: 'Nova Receita', href: '/dashboard/receitas/nova', icon: FileText, color: 'bg-emerald-500' },
 ]
 
