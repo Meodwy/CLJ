@@ -38,6 +38,13 @@ yarn-error.log*
 
 # dev tools
 .agents/
+AGENTS.md
+CLAUDE.md
+
+# project docs
+DESIGN.md
+PRODUCT.md
+docs/
 
 # typescript
 *.tsbuildinfo
