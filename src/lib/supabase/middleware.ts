@@ -34,8 +34,8 @@ export async function updateSession(request: NextRequest) {
   let authFailed = false
 
   try {
-    const { data } = await supabase.auth.getSession()
-    if (!data.session?.user) {
+    const { data } = await supabase.auth.getUser()
+    if (!data.user) {
       authFailed = true
     }
   } catch {
