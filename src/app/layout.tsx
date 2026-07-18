@@ -13,6 +13,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "CLJ — Gestão Clínica",
   description: "Sistema de gestão para clínicas",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

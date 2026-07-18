@@ -17,6 +17,8 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react'
+import type { CompoundingOrderStatus } from '@/lib/compounding/types'
+import { STATUS_LABELS } from '@/lib/compounding/types'
 import { useEffect, useState } from 'react'
 
 interface SummaryCard {
@@ -240,7 +242,7 @@ export default function ManipulacaoPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString('pt-BR')}</span>
-                    <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{order.status.replace(/_/g, ' ')}</span>
+                    <span className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{STATUS_LABELS[order.status as CompoundingOrderStatus] ?? order.status.replace(/_/g, ' ')}</span>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30" />
                   </div>
                 </button>
