@@ -36,7 +36,7 @@ const breadcrumbLabels: Record<string, string> = {
 }
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
-  const { loading, profile } = useAuth()
+  const { loading, user, profile } = useAuth()
   const { dynamicLabel } = useBreadcrumbLabel()
   const pathname = usePathname()
   const router = useRouter()
@@ -55,6 +55,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/40" />
       </div>
     )
+  }
+
+  if (!user) {
+    router.replace('/login')
+    return null
   }
 
   function getInitials(name: string) {

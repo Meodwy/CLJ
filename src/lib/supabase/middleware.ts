@@ -43,9 +43,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (authFailed) {
-    // Redirect to /login only for dashboard routes
-    // Allow API routes and static files to pass through
-    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    // Redirect to /login for dashboard routes and root
+    if (request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/dashboard')) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
@@ -53,7 +52,8 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  if (request.nextUrl.pathname.startsWith('/login')) {
+  // Redirect authenticated users away from login and root
+  if (request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
